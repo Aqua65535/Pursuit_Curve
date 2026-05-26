@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>导弹追踪飞机</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* 深浅色主题适配 (跟随系统) */
+    :root {
+      --bg-page: #f7f9fc;
+      --surface: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --accent-muted: #eff6ff;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-card: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
+      --radius-md: 16px;
+      --radius-sm: 10px;
+      --code-bg: #f8fafc;
+      --canvas-bg: #ffffff;
+      --diagram-bg: white;
+      --card-bg: #ffffff;
+      --table-header: #f1f5f9;
+      --result-bg: #f0f9ff;
+      --result-text: #0c4a6e;
+      --warning-bg: #fee2e2;
+      --warning-text: #dc2626;
+      /* 流程图专用颜色变量 */
+      --diagram-rect-fill: #f8fafc;
+      --diagram-rect-stroke: #cbd5e1;
+      --diagram-text: #1e293b;
+      --diagram-text-secondary: #334155;
+      --diagram-polygon-fill: #fef9c3;
+      --diagram-polygon-stroke: #ca8a04;
+      --diagram-arrow: #475569;
+      --diagram-line: #475569;
+      --diagram-rect-blue-fill: #f0f9ff;
+      --diagram-rect-blue-stroke: #7dd3fc;
+      --diagram-text-blue: #0369a1;
+      --diagram-text-blue-light: #0284c7;
+      --diagram-rect-green-fill: #f0fdf4;
+      --diagram-rect-green-stroke: #86efac;
+      --diagram-text-green: #166534;
+      --diagram-rect-red-fill: #fef2f2;
+      --diagram-rect-red-stroke: #fca5a5;
+      --diagram-text-red: #991b1b;
+    }
+
+    /* 深色模式 */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-page: #0f172a;
+        --surface: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-light: #334155;
+        --accent: #3b82f6;
+        --accent-soft: #1e3a8a;
+        --accent-muted: #1e293b;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+        --shadow-card: 0 4px 12px rgba(0,0,0,0.4);
+        --code-bg: #0f172a;
+        --canvas-bg: #0f172a;
+        --diagram-bg: #1e293b;
+        --card-bg: #1e293b;
+        --table-header: #334155;
+        --result-bg: #1e3a8a;
+        --result-text: #e0f2fe;
+        --warning-bg: #7f1a1a;
+        --warning-text: #fecaca;
+        /* 深色模式流程图专用颜色 */
+        --diagram-rect-fill: #1e293b;
+        --diagram-rect-stroke: #475569;
+        --diagram-text: #e2e8f0;
+        --diagram-text-secondary: #94a3b8;
+        --diagram-polygon-fill: #422c0d;
+        --diagram-polygon-stroke: #b45309;
+        --diagram-arrow: #64748b;
+        --diagram-line: #64748b;
+        --diagram-rect-blue-fill: #0c4a6e;
+        --diagram-rect-blue-stroke: #0284c7;
+        --diagram-text-blue: #bae6fd;
+        --diagram-text-blue-light: #7dd3fc;
+        --diagram-rect-green-fill: #064e3b;
+        --diagram-rect-green-stroke: #10b981;
+        --diagram-text-green: #a7f3d0;
+        --diagram-rect-red-fill: #7f1a1a;
+        --diagram-rect-red-stroke: #ef4444;
+        --diagram-text-red: #fecaca;
+      }
+      
+      body {
+        background: var(--bg-page);
+      }
+      .container {
+        background: var(--surface);
+        border-color: var(--border-light);
+      }
+      h1, h2, h3, .sim-header, .param-panel, .result-card, .math-block, .code-block, .diagram-container, .sim-canvas-wrapper {
+        background-color: var(--surface);
+        color: var(--text-primary);
+      }
+      .math-block, .code-block {
+        background: var(--code-bg);
+        border-color: var(--border-light);
+        color: var(--text-secondary);
+      }
+      canvas {
+        background: var(--canvas-bg);
+      }
+      .param-panel, .sim-canvas-wrapper {
+        background: var(--surface);
+        border-color: var(--border-light);
+      }
+      .sim-header {
+        background: var(--surface);
+        border-bottom-color: var(--border-light);
+      }
+      .param-label, .param-value {
+        color: var(--text-secondary);
+      }
+      table {
+        background: var(--surface);
+      }
+      th {
+        background: var(--table-header);
+        color: var(--text-primary);
+      }
+      td {
+        color: var(--text-secondary);
+        border-bottom-color: var(--border-light);
+      }
+      .result-card {
+        background: var(--result-bg);
+        color: var(--result-text);
+        border-left-color: var(--accent);
+      }
+      .warning-text {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .ctrl-btn {
+        background: var(--surface);
+        border-color: var(--border-light);
+        color: var(--accent);
+      }
+      .ctrl-btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+      }
+      .ctrl-btn-primary:hover {
+        background: #1d4ed8;
+      }
+      .ctrl-btn:hover {
+        background: var(--accent-soft);
+      }
+      .legend-note {
+        border-top-color: var(--border-light);
+        color: var(--text-muted);
+        background: var(--surface);
+      }
+      .status-tip {
+        background: var(--code-bg);
+        color: var(--text-primary);
+      }
+      .legend-note {
+        border-top-color: var(--border-light);
+        color: var(--text-muted);
+        background: var(--surface);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-page);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1060px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 2rem;
+      box-shadow: var(--shadow-card);
+      padding: 2.5rem 2.8rem;
+      border: 1px solid var(--border-light);
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      h1 {
+        color: #f1f5f9;
+      }
+    }
+    h1 span {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .project-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent-muted);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 2rem;
+      transition: background 0.2s;
+      border: 1px solid #bfdbfe;
+      word-break: break-word;
+      max-width: 100%;
+      white-space: normal;
+    }
+    .project-link:hover {
+      background: #dbeafe;
+    }
+    @media (max-width: 650px) {
+      .project-link {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.9rem;
+        white-space: normal;
+        word-break: break-all;
+        text-align: center;
+      }
+      .container {
+        padding: 1.8rem 1.2rem;
+      }
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-top: 2.4rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--border-light);
+      color: #1e293b;
+      letter-spacing: -0.01em;
+    }
+    @media (prefers-color-scheme: dark) {
+      h2 {
+        color: #e2e8f0;
+      }
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 1.8rem 0 0.8rem;
+      color: #334155;
+    }
+    @media (prefers-color-scheme: dark) {
+      h3 {
+        color: #cbd5e1;
+      }
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
+
+    strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    @media (prefers-color-scheme: dark) {
+      strong {
+        color: #f1f5f9;
+      }
+    }
+
+    ul, ol {
+      padding-left: 1.6rem;
+      margin: 1rem 0;
+      color: var(--text-secondary);
+    }
+    li {
+      margin-bottom: 0.4rem;
+    }
+
+    .math-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.5rem;
+      margin: 1.2rem 0;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0 1.8rem;
+      font-size: 0.95rem;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      background: var(--surface);
+    }
+    th {
+      background: var(--table-header);
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-light);
+    }
+    td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-secondary);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 1.2rem 1.5rem;
+      margin: 1.2rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      color: var(--text-primary);
+      white-space: pre;
+    }
+
+    .badge {
+      background: var(--accent-soft);
+      color: #1e40af;
+      padding: 0.15rem 0.7rem;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    @media (prefers-color-scheme: dark) {
+      .badge {
+        color: #bfdbfe;
+      }
+    }
+
+    .diagram-container {
+      background: var(--diagram-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 1.2rem;
+      margin: 1.8rem 0;
+      display: flex;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .result-card {
+      background: var(--result-bg);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.5rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 1.5rem 0;
+      color: var(--result-text);
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 2rem 0;
+    }
+
+    .sim-canvas-wrapper {
+      background: var(--surface);
+      border-radius: 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-card);
+      margin: 2rem 0 1.8rem;
+      overflow: hidden;
+    }
+    .sim-header {
+      background: var(--surface);
+      padding: 0.9rem 1.2rem;
+      border-bottom: 1px solid var(--border-light);
+      font-weight: 600;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .sim-header span:first-child {
+      color: var(--text-primary);
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 40px;
+      padding: 0.35rem 1.1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    .ctrl-btn:hover {
+      background: var(--accent-soft);
+      border-color: var(--border-light);
+    }
+    .ctrl-btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .ctrl-btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .param-panel {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 1.2rem 1.5rem;
+      margin: 1.5rem 0 1rem 0;
+      border: 1px solid var(--border-light);
+    }
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem 1.5rem;
+    }
+    .param-slider {
+      width: 100%;
+      margin: 4px 0;
+    }
+    .param-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .param-value {
+      font-size: 0.7rem;
+      font-family: monospace;
+      color: var(--text-secondary);
+    }
+    .warning-text {
+      font-size: 0.75rem;
+      color: var(--warning-text);
+      font-weight: 500;
+      background: var(--warning-bg);
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: var(--canvas-bg);
+      cursor: pointer;
+    }
+    .status-tip {
+      background: var(--code-bg);
+      border-radius: 20px;
+      padding: 0.3rem 1rem;
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--text-primary);
+      display: inline-block;
+    }
+    .legend-note {
+      display: flex;
+      gap: 16px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-light);
+      padding: 0.7rem 1.2rem;
+      background: var(--surface);
+      flex-wrap: wrap;
+    }
+    @media (max-width: 550px) {
+      .sim-header { flex-direction: column; align-items: stretch; }
+      .param-grid { gap: 0.8rem; }
+    }
+    
+    .demo-heading {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--border-light);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1><span>🚀 导弹追踪飞机</span></h1>
+  <a class="project-link" href="https://github.com/Aqua65535/Pursuit_Curve" target="_blank">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    项目地址：github.com/Aqua65535/Pursuit_Curve
+  </a>
+
+  <h2>📋 问题背景</h2>
+  <p>一架飞机在二维平面内以恒定速度水平向右飞行。地面发射一枚导弹，导弹始终朝向飞机的<strong>当前位置</strong>飞行，且导弹速度大于飞机速度。这是一个经典的<strong>纯追踪问题</strong>，广泛用于军事、机器人与控制理论。</p>
+  
+  <h3>数学描述</h3>
+  <ul>
+    <li><strong>飞机速度：</strong>v<sub>p</sub> (水平向右)</li>
+    <li><strong>飞机初始位置：</strong>(x<sub>p0</sub>, y<sub>p0</sub>)</li>
+    <li><strong>导弹速度：</strong>v<sub>m</sub> (满足 v<sub>m</sub> &gt; v<sub>p</sub>)</li>
+    <li><strong>导弹初始位置：</strong>(x<sub>m0</sub>, y<sub>m0</sub>)，通常取 (0,0)</li>
+    <li><strong>时间步长：</strong>Δt</li>
+  </ul>
+
+  <div class="math-block">
+    <strong>飞机运动方程：</strong><br>
+    x<sub>p</sub>(t+Δt) = x<sub>p</sub>(t) + v<sub>p</sub> · Δt<br>
+    y<sub>p</sub>(t) = 常数（水平飞行）
+  </div>
+
+  <p>导弹采用<strong>纯追踪法</strong>：速度方向始终指向飞机当前位置。导弹与飞机距离：</p>
+  <div class="math-block">
+    d = √((x<sub>p</sub> - x<sub>m</sub>)² + (y<sub>p</sub> - y<sub>m</sub>)²)
+  </div>
+
+  <p>导弹速度分量：</p>
+  <div class="math-block">
+    v<sub>mx</sub> = v<sub>m</sub> · (x<sub>p</sub> - x<sub>m</sub>) / d<br>
+    v<sub>my</sub> = v<sub>m</sub> · (y<sub>p</sub> - y<sub>m</sub>) / d
+  </div>
+
+  <p>导弹位置更新：</p>
+  <div class="math-block">
+    x<sub>m</sub>(t+Δt) = x<sub>m</sub>(t) + v<sub>mx</sub> · Δt<br>
+    y<sub>m</sub>(t+Δt) = y<sub>m</sub>(t) + v<sub>my</sub> · Δt
+  </div>
+  <p><span class="badge">判定条件</span> 当导弹x坐标 ≥ 飞机x坐标时，认为成功击中。</p>
+
+  <hr />
+
+  <h2>🧠 解法概述</h2>
+  <p>本项目采用<strong>数值积分法（欧拉法）</strong>离散化求解微分方程。</p>
+  <ol>
+    <li><strong>初始化</strong>：设置飞机/导弹位置、速度、时间步长。</li>
+    <li><strong>循环迭代</strong>：计算距离 → 判断击中 → 更新飞机位置 → 计算导弹方向 → 更新导弹位置。</li>
+  </ol>
+
+  <div class="code-block">
+<span style="color:#2563eb;">def</span> <span style="color:#0f172a;">update_missile</span>(x_m, y_m, x_p, y_p, v_m, dt):
+    dx = x_p - x_m
+    dy = y_p - y_m
+    distance = np.sqrt(dx**2 + dy**2)
+    <span style="color:#2563eb;">if</span> distance > 0:
+        vx = v_m * (dx / distance)
+        vy = v_m * (dy / distance)
+        x_m += vx * dt
+        y_m += vy * dt
+    <span style="color:#2563eb;">return</span> x_m, y_m
+  </div>
+
+  <h3>算法流程图</h3>
+  <div class="diagram-container">
+    <!-- 流程图颜色已全部改用 CSS 变量，深色模式自动适配 -->
+    <svg width="100%" viewBox="0 0 720 700" style="max-width: 680px; background: var(--diagram-bg); border-radius: 12px;">
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--diagram-arrow)"/></marker></defs>
+      <rect x="260" y="20" width="180" height="48" rx="12" fill="var(--diagram-rect-fill)" stroke="var(--diagram-rect-stroke)" stroke-width="1.5"/>
+      <text x="350" y="50" text-anchor="middle" font-size="15" font-weight="500" fill="var(--diagram-text)">输入参数</text>
+      <rect x="240" y="100" width="220" height="48" rx="12" fill="var(--diagram-rect-fill)" stroke="var(--diagram-rect-stroke)" stroke-width="1.5"/>
+      <text x="350" y="130" text-anchor="middle" font-size="15" fill="var(--diagram-text)">设置初始位置</text>
+      <rect x="250" y="180" width="200" height="48" rx="12" fill="var(--diagram-rect-fill)" stroke="var(--diagram-rect-stroke)" stroke-width="1.5"/>
+      <text x="350" y="210" text-anchor="middle" font-size="14" fill="var(--diagram-text-secondary)">t = 0, 创建空列表</text>
+      <rect x="190" y="270" width="320" height="52" rx="14" fill="var(--surface)" stroke="var(--diagram-rect-stroke)" stroke-width="1.5"/>
+      <text x="350" y="302" text-anchor="middle" font-size="15" font-weight="500" fill="var(--diagram-text)">计算导弹/飞机坐标</text>
+      <polygon points="350,350 470,420 350,490 230,420" fill="var(--diagram-polygon-fill)" stroke="var(--diagram-polygon-stroke)" stroke-width="1.5"/>
+      <text x="350" y="425" text-anchor="middle" font-size="14" fill="var(--diagram-text)">导弹X ≥ 飞机X?</text>
+      <rect x="80" y="530" width="200" height="46" rx="10" fill="var(--diagram-rect-blue-fill)" stroke="var(--diagram-rect-blue-stroke)" stroke-width="1.5"/>
+      <text x="180" y="558" text-anchor="middle" font-size="14" fill="var(--diagram-text-blue)">更新飞机位置</text>
+      <rect x="80" y="610" width="200" height="60" rx="10" fill="var(--diagram-rect-blue-fill)" stroke="var(--diagram-rect-blue-stroke)" stroke-width="1.5"/>
+      <text x="180" y="635" text-anchor="middle" font-size="13" fill="var(--diagram-text-blue)">更新导弹位置</text>
+      <text x="180" y="655" text-anchor="middle" font-size="12" fill="var(--diagram-text-blue-light)">(纯追踪算法)</text>
+      <rect x="340" y="610" width="160" height="46" rx="10" fill="var(--diagram-rect-green-fill)" stroke="var(--diagram-rect-green-stroke)" stroke-width="1.5"/>
+      <text x="420" y="638" text-anchor="middle" font-size="14" fill="var(--diagram-text-green)">存储数据, t+=dt</text>
+      <rect x="500" y="530" width="180" height="46" rx="10" fill="var(--diagram-rect-red-fill)" stroke="var(--diagram-rect-red-stroke)" stroke-width="1.5"/>
+      <text x="590" y="558" text-anchor="middle" font-size="14" fill="var(--diagram-text-red)">输出: 击中时间/位置</text>
+      <rect x="510" y="610" width="160" height="46" rx="10" fill="var(--diagram-rect-red-fill)" stroke="var(--diagram-rect-red-stroke)" stroke-width="1.5"/>
+      <text x="590" y="638" text-anchor="middle" font-size="14" fill="var(--diagram-text-red)">绘制轨迹图 · 结束</text>
+      <line x1="350" y1="68" x2="350" y2="98" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <line x1="350" y1="148" x2="350" y2="178" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <line x1="350" y1="228" x2="350" y2="268" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <line x1="350" y1="322" x2="350" y2="348" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <path d="M350,490 L350,520 L180,520 L180,528" fill="none" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <text x="250" y="515" font-size="13" fill="var(--diagram-arrow)">否</text>
+      <line x1="180" y1="576" x2="180" y2="608" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <path d="M180,670 L180,690 L380,690 L380,656" fill="none" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <text x="270" y="683" font-size="12" fill="var(--diagram-arrow)">循环</text>
+      <path d="M470,420 L560,420 L560,528" fill="none" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+      <text x="500" y="475" font-size="13" fill="var(--diagram-arrow)">是</text>
+      <line x1="590" y1="576" x2="590" y2="608" stroke="var(--diagram-line)" stroke-width="1.8" marker-end="url(#arrow)"/>
+    </svg>
+  </div>
+
+  <h3>运行示例（默认参数）</h3>
+  <table>
+    <thead><tr><th>参数</th><th>数值</th></tr></thead>
+    <tbody>
+      <tr><td>飞机速度</td><td>100 m/s</td></tr>
+      <tr><td>飞机初始位置</td><td>(10000, 5000) m</td></tr>
+      <tr><td>导弹速度</td><td>300 m/s</td></tr>
+      <tr><td>导弹初始位置</td><td>(0, 0) m</td></tr>
+      <tr><td>命中距离阈值</td><td>5 m</td></tr>
+    </tbody>
+  </table>
+
+  <div class="result-card">
+    <strong>模拟结果</strong><br>
+    <span style="font-weight:600;">击中时间：</span>54.38 秒<br>
+    <span style="font-weight:600;">击中位置：</span>(15428.7, 4999.9) m
+  </div>
+
+  <hr />
+
+  <!-- ========= 动画演示区域 ========= -->
+  <div class="demo-heading">🎬 动画演示</div>
+
+  <!-- 参数调节面板 -->
+  <div class="param-panel">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem;">
+      <span style="font-weight: 600; background: var(--accent-soft); padding: 0.2rem 1rem; border-radius: 40px; font-size: 0.85rem;">🎛️ 参数调节</span>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">修改参数后点击按钮重新计算并播放动画</span>
+    </div>
+    <div class="param-grid">
+      <div><div class="param-label">✈️ 飞机速度 v_p (m/s)</div><input type="range" id="param_v_plane" min="50" max="300" step="5" value="100" class="param-slider"><div><span id="v_plane_val" class="param-value">100</span></div></div>
+      <div><div class="param-label">🚀 导弹速度 v_m (m/s)</div><input type="range" id="param_v_missile" min="150" max="600" step="10" value="300" class="param-slider"><div><span id="v_missile_val" class="param-value">300</span></div></div>
+      <div><div class="param-label">📍 飞机初始 X (m)</div><input type="range" id="param_x_plane" min="3000" max="20000" step="500" value="10000" class="param-slider"><span id="x_plane_val" class="param-value">10000</span></div>
+      <div><div class="param-label">📈 飞机初始 Y (m)</div><input type="range" id="param_y_plane" min="1000" max="12000" step="200" value="5000" class="param-slider"><span id="y_plane_val" class="param-value">5000</span></div>
+      <div><div class="param-label">🎯 导弹初始 X (m)</div><input type="range" id="param_x_missile" min="0" max="2000" step="100" value="0" class="param-slider"><span id="x_missile_val" class="param-value">0</span></div>
+      <div><div class="param-label">🎯 导弹初始 Y (m)</div><input type="range" id="param_y_missile" min="0" max="3000" step="100" value="0" class="param-slider"><span id="y_missile_val" class="param-value">0</span></div>
+    </div>
+    <div style="display: flex; gap: 15px; margin-top: 1.2rem; flex-wrap: wrap; align-items: center;">
+      <button id="applyParamsBtn" class="ctrl-btn ctrl-btn-primary">🔄 重新计算并播放动画</button>
+    </div>
+  </div>
+
+  <!-- 动画画布 -->
+  <div class="sim-canvas-wrapper">
+    <div class="sim-header">
+      <span>追踪轨迹模拟（5秒动态演示）</span>
+      <span class="status-tip" id="animStatus"> 准备就绪 </span>
+    </div>
+    <canvas id="missileCanvas" width="900" height="500" style="width:100%; height:auto; background:var(--canvas-bg); border-radius: 20px;"></canvas>
+    <div class="legend-note"><span>🔴 红色轨迹 — 导弹</span><span>🔵 蓝色轨迹 — 飞机</span><span>🟢 绿色★ — 命中点</span></div>
+  </div>
+
+  <h2>📊 结果分析</h2>
+  <h3>1. 理论保证</h3>
+  <p>因为 v<sub>m</sub> &gt; v<sub>p</sub> 且导弹始终指向飞机，理论上<strong>导弹一定能击中目标</strong>。</p>
+  <h3>2. 观察现象</h3>
+  <ul><li>导弹轨迹是一条<strong>平滑曲线</strong>，从发射点逐渐逼近飞机航线。</li><li>随着接近目标，导弹轨迹曲率增大。</li></ul>
+  <h3>3. 参数影响</h3>
+  <table><thead><tr><th>参数变化</th><th>影响</th></tr></thead><tbody>
+    <tr><td>导弹速度 ↑</td><td>击中时间 ↓，轨迹更"直"</td></tr>
+    <tr><td>飞机速度 ↑</td><td>击中时间 ↑，追逐距离更长</td></tr>
+    <tr><td>初始Y坐标差 ↑</td><td>轨迹弯曲程度 ↑</td></tr>
+  </tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+(function() {
+    let userParams = { v_plane: 100, v_missile: 300, x_plane0: 10000, y_plane0: 5000, x_missile0: 0, y_missile0: 0 };
+    let dt_sim = 0.05;
+    let xmList=[], ymList=[], xpList=[], ypList=[], timeList=[], hit_x=0, hit_y=0, totalSimDuration=1;
+    let xMin=0, xMax=12000, yMin=0, yMax=6000;
+    let animProgress = 0, isPlaying = false, animFrameRequest = null;
+    let canvas, ctx, width=900, height=500;
+    
+    function isParamsValid(params) {
+        if(params.v_missile <= params.v_plane) return false;
+        if(params.x_missile0 >= params.x_plane0) return false;
+        if(params.y_missile0 >= params.y_plane0) return false;
+        return true;
+    }
+    
+    function showInvalidParamAlert() {
+        alert("参数不合法，动画无法播放哦！请确保导弹速度大于飞机速度，且导弹在飞机左下方~");
+    }
+    
+    function computeTrajectory() {
+        let v_plane = userParams.v_plane, v_missile = userParams.v_missile;
+        let x_p = userParams.x_plane0, y_p = userParams.y_plane0;
+        let x_m = userParams.x_missile0, y_m = userParams.y_missile0;
+        let t = 0;
+        let xpArr=[x_p], ypArr=[y_p], xmArr=[x_m], ymArr=[y_m], tArr=[0];
+        let maxSteps = 20000;
+        let steps = 0;
+        while(true) {
+            if (x_m >= x_p) break;
+            x_p += v_plane * dt_sim;
+            y_p = userParams.y_plane0;
+            let dx = x_p - x_m, dy = y_p - y_m;
+            let dist = Math.hypot(dx, dy);
+            if (dist > 1e-6) {
+                let vx_m = v_missile * (dx/dist), vy_m = v_missile * (dy/dist);
+                x_m += vx_m * dt_sim;
+                y_m += vy_m * dt_sim;
+            }
+            t += dt_sim;
+            xpArr.push(x_p); ypArr.push(y_p); xmArr.push(x_m); ymArr.push(y_m); tArr.push(t);
+            steps++;
+            if (t > 300 || steps > maxSteps) break;
+        }
+        return { xmList:xmArr, ymList:ymArr, xpList:xpArr, ypList:ypArr, timeList:tArr, hit_x:x_m, hit_y:y_m, hit_time:t };
+    }
+    
+    function updateGlobalTrajectory() {
+        const traj = computeTrajectory();
+        xmList = traj.xmList; ymList = traj.ymList; xpList = traj.xpList; ypList = traj.ypList;
+        timeList = traj.timeList; hit_x = traj.hit_x; hit_y = traj.hit_y;
+        totalSimDuration = timeList[timeList.length-1];
+        if(totalSimDuration <= 0) totalSimDuration = 1;
+        let allX = [...xmList, ...xpList, hit_x];
+        let allY = [...ymList, ...ypList, hit_y];
+        if(allX.length === 0) { xMin = -500; xMax = 15000; yMin = -500; yMax = 8000; return; }
+        let minX = Math.min(...allX), maxX = Math.max(...allX);
+        let minY = Math.min(...allY), maxY = Math.max(...allY);
+        let padX = Math.max(800, (maxX - minX) * 0.2);
+        let padY = Math.max(600, (maxY - minY) * 0.2);
+        xMin = minX - padX;
+        xMax = maxX + padX;
+        yMin = minY - padY;
+        yMax = maxY + padY;
+        if(xMin < -500) xMin = -500;
+        if(yMin < -500) yMin = -500;
+        if(xMax - xMin < 2000) { xMin -= 1000; xMax += 1000; }
+        if(yMax - yMin < 1000) { yMin -= 500; yMax += 500; }
+    }
+    
+    function worldToCanvas(x,y) {
+        let px = ((x - xMin) / (xMax - xMin)) * width;
+        let py = height - ((y - yMin) / (yMax - yMin)) * height;
+        return { x: Math.min(width, Math.max(0, px)), y: Math.min(height, Math.max(0, py)) };
+    }
+    
+    function drawStaticBackground() {
+        if(!ctx) return;
+        ctx.clearRect(0,0,width,height);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas-bg').trim() || '#ffffff';
+        ctx.fillRect(0,0,width,height);
+        ctx.save();
+        ctx.strokeStyle = 'var(--border-light)';
+        ctx.lineWidth = 0.8;
+        for(let i=0;i<=6;i++) {
+            let x = xMin + (i/6)*(xMax-xMin);
+            let p = worldToCanvas(x,0);
+            ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,height); ctx.stroke();
+            let y = yMin + (i/6)*(yMax-yMin);
+            let p2 = worldToCanvas(0,y);
+            ctx.beginPath(); ctx.moveTo(0,p2.y); ctx.lineTo(width,p2.y); ctx.stroke();
+        }
+        let origin = worldToCanvas(0,0);
+        ctx.beginPath(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.2;
+        ctx.moveTo(origin.x,0); ctx.lineTo(origin.x,height);
+        ctx.moveTo(0,origin.y); ctx.lineTo(width,origin.y);
+        ctx.stroke();
+        ctx.fillStyle='#475569'; ctx.font='10px monospace';
+        ctx.fillText('x (m)', width-30, origin.y-6);
+        ctx.fillText('y (m)', origin.x+8, 18);
+        ctx.restore();
+    }
+    
+    function drawFullTrajectories() {
+        if(!ctx || xmList.length<2) return;
+        ctx.beginPath();
+        let first = worldToCanvas(xmList[0], ymList[0]);
+        ctx.moveTo(first.x, first.y);
+        for(let i=1;i<xmList.length;i++){ let pt=worldToCanvas(xmList[i],ymList[i]); ctx.lineTo(pt.x,pt.y); }
+        ctx.strokeStyle='#f97316'; ctx.lineWidth=2.2; ctx.setLineDash([8,5]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath();
+        let fp = worldToCanvas(xpList[0], ypList[0]);
+        ctx.moveTo(fp.x, fp.y);
+        for(let i=1;i<xpList.length;i++){ let pt=worldToCanvas(xpList[i],ypList[i]); ctx.lineTo(pt.x,pt.y); }
+        ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.stroke();
+        if(hit_x && hit_y) {
+            let hitPt = worldToCanvas(hit_x, hit_y);
+            ctx.fillStyle='#22c55e'; ctx.beginPath();
+            let spikes=5, sizeStar=9;
+            for(let i=0;i<spikes*2;i++){ let rad = i%2===0?sizeStar:sizeStar*0.45; let ang=Math.PI*2*i/(spikes*2)-Math.PI/2; let x=hitPt.x+rad*Math.cos(ang), y=hitPt.y+rad*Math.sin(ang); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+            ctx.closePath(); ctx.fillStyle='#2b9348'; ctx.fill();
+        }
+    }
+    
+    function interpolateTraj(t_real) {
+        if(!timeList.length) return { xm:0, ym:0, xp:0, yp:0 };
+        if(t_real<=0) return { xm:xmList[0], ym:ymList[0], xp:xpList[0], yp:ypList[0] };
+        if(t_real>=totalSimDuration) return { xm:xmList[xmList.length-1], ym:ymList[ymList.length-1], xp:xpList[xpList.length-1], yp:ypList[ypList.length-1] };
+        let idx=0;
+        for(let i=0;i<timeList.length-1;i++) if(t_real>=timeList[i] && t_real<=timeList[i+1]) { idx=i; break; }
+        let t0=timeList[idx], t1=timeList[idx+1], ratio=(t_real-t0)/(t1-t0);
+        return { xm:xmList[idx]+(xmList[idx+1]-xmList[idx])*ratio, ym:ymList[idx]+(ymList[idx+1]-ymList[idx])*ratio, xp:xpList[idx]+(xpList[idx+1]-xpList[idx])*ratio, yp:ypList[idx]+(ypList[idx+1]-ypList[idx])*ratio };
+    }
+    
+    function getPosByProgress(progress) { return interpolateTraj(progress * totalSimDuration); }
+    
+    function updateAnimation(progress) {
+        if(!ctx) return;
+        if(progress>1) progress=1;
+        let pos = getPosByProgress(progress);
+        drawStaticBackground();
+        drawFullTrajectories();
+        let mPos=worldToCanvas(pos.xm, pos.ym), pPos=worldToCanvas(pos.xp, pos.yp);
+        ctx.beginPath(); ctx.arc(mPos.x, mPos.y, 7, 0, 2*Math.PI); ctx.fillStyle='#dc2626'; ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 12px sans-serif'; ctx.fillText("🚀", mPos.x-8, mPos.y-5);
+        ctx.beginPath(); ctx.arc(pPos.x, pPos.y, 8, 0, 2*Math.PI); ctx.fillStyle='#2563eb'; ctx.fill(); ctx.fillText("✈️", pPos.x-6, pPos.y-5);
+        let percent=Math.floor(progress*100);
+        ctx.font="11px monospace"; ctx.fillStyle='var(--text-primary)'; ctx.fillText(`动画进度 ${percent}% | 物理时间 ${(progress*totalSimDuration).toFixed(1)}s`, 15, 25);
+    }
+    
+    function startAnimation() {
+        if(isPlaying) return;
+        if(!timeList.length || totalSimDuration <= 0) return;
+        if(animProgress >= 0.99) resetAnimation();
+        isPlaying=true;
+        let startProgress = animProgress;
+        let startTime = performance.now()/1000;
+        function step(nowMs){
+            let nowSec=nowMs/1000;
+            let newProg = startProgress + (nowSec-startTime)/5.0;
+            if(newProg>=1.0){ 
+                updateAnimation(1); 
+                isPlaying=false; 
+                animProgress=1;
+                document.getElementById('animStatus').innerText='播放结束'; 
+                if(animFrameRequest) cancelAnimationFrame(animFrameRequest); 
+                animFrameRequest=null; 
+                return; 
+            }
+            updateAnimation(newProg);
+            animProgress=newProg;
+            animFrameRequest=requestAnimationFrame(step);
+        }
+        if(animFrameRequest) cancelAnimationFrame(animFrameRequest);
+        animFrameRequest=requestAnimationFrame(step);
+        document.getElementById('animStatus').innerText='▶ 播放中 (固定5秒)';
+    }
+    
+    function resetAnimation() {
+        if(animFrameRequest) cancelAnimationFrame(animFrameRequest);
+        isPlaying=false;
+        animProgress=0;
+        if(ctx) updateAnimation(0);
+        document.getElementById('animStatus').innerText='准备就绪';
+    }
+    
+    function resizeAndRedraw() {
+        if(!canvas || !ctx) return;
+        const container = canvas.parentElement;
+        let w = container.clientWidth;
+        canvas.width = Math.max(600, w-30);
+        canvas.height = canvas.width * 0.55;
+        width = canvas.width; height = canvas.height;
+        drawStaticBackground(); 
+        drawFullTrajectories(); 
+        updateAnimation(animProgress);
+    }
+    
+    function bindParamControls() {
+        const vpSlider=document.getElementById('param_v_plane'), vmSlider=document.getElementById('param_v_missile');
+        const xpSlider=document.getElementById('param_x_plane'), ypSlider=document.getElementById('param_y_plane');
+        const xmSlider=document.getElementById('param_x_missile'), ymSlider=document.getElementById('param_y_missile');
+        const vpVal=document.getElementById('v_plane_val'), vmVal=document.getElementById('v_missile_val');
+        const xpVal=document.getElementById('x_plane_val'), ypVal=document.getElementById('y_plane_val');
+        const xmVal=document.getElementById('x_missile_val'), ymVal=document.getElementById('y_missile_val');
+        
+        function updateDisplay(){
+            vpVal.innerText=vpSlider.value; vmVal.innerText=vmSlider.value;
+            xpVal.innerText=xpSlider.value; ypVal.innerText=ypSlider.value;
+            xmVal.innerText=xmSlider.value; ymVal.innerText=ymSlider.value;
+        }
+        vpSlider.addEventListener('input',updateDisplay); vmSlider.addEventListener('input',updateDisplay);
+        xpSlider.addEventListener('input',updateDisplay); ypSlider.addEventListener('input',updateDisplay);
+        xmSlider.addEventListener('input',updateDisplay); ymSlider.addEventListener('input',updateDisplay);
+        
+        function applyAndRecompute(){
+            let vp=parseFloat(vpSlider.value), vm=parseFloat(vmSlider.value);
+            let xp0=parseFloat(xpSlider.value), yp0=parseFloat(ypSlider.value);
+            let xm0=parseFloat(xmSlider.value), ym0=parseFloat(ymSlider.value);
+            let tempParams = { v_plane:vp, v_missile:vm, x_plane0:xp0, y_plane0:yp0, x_missile0:xm0, y_missile0:ym0 };
+            if(!isParamsValid(tempParams)){
+                showInvalidParamAlert();
+                return;
+            }
+            userParams = tempParams;
+            updateGlobalTrajectory();
+            if(animFrameRequest) cancelAnimationFrame(animFrameRequest);
+            isPlaying=false;
+            animProgress=0;
+            resizeAndRedraw();
+            document.getElementById('animStatus').innerText='参数已更新，自动播放动画';
+            startAnimation();
+        }
+        
+        document.getElementById('applyParamsBtn').addEventListener('click',applyAndRecompute);
+        updateDisplay();
+    }
+    
+    // 监听深色/浅色模式切换，自动重绘画布和流程图（流程图颜色由CSS变量自动处理，画布需要重绘）
+    function initThemeObserver() {
+        // 监听系统主题变化
+        const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleThemeChange = () => {
+            // 主题切换后，重新绘制画布内容（颜色会重新从CSS变量读取）
+            if(ctx) {
+                resizeAndRedraw();
+            }
+        };
+        // 监听变化
+        if (darkModeMedia.addEventListener) {
+            darkModeMedia.addEventListener('change', handleThemeChange);
+        } else if (darkModeMedia.addListener) {
+            darkModeMedia.addListener(handleThemeChange);
+        }
+    }
+    
+    function init(){
+        canvas = document.getElementById('missileCanvas');
+        if(!canvas) return;
+        ctx = canvas.getContext('2d');
+        updateGlobalTrajectory();
+        resizeAndRedraw();
+        bindParamControls();
+        initThemeObserver();  // 添加主题切换监听
+        window.addEventListener('resize',()=>resizeAndRedraw());
+        updateAnimation(0);
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

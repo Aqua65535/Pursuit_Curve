@@ -2,6 +2,10 @@
 
 **项目地址**：https://github.com/Aqua65535/Pursuit_Curve
 
+**网页模拟**：https://pursuit-curve.netlify.app/
+
+****
+
 ## 一、问题背景
 
 一架飞机在二维平面内以恒定速度水平向右飞行。地面发射一枚导弹，导弹始终朝向飞机的**当前位置**飞行，导弹速度大于飞机速度。
